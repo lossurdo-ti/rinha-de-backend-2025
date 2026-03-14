@@ -6,6 +6,8 @@ services:
       - NODE_ENV=production
       - PORT=9999
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+      - DEFAULT_PAYMENT_PROCESSOR_BASE_URL=http://payment-processor-default:8080
+      - FALLBACK_PAYMENT_PROCESSOR_BASE_URL=http://payment-processor-fallback:8080
     ports:
       - "9999:9999"
     networks:
@@ -22,7 +24,7 @@ services:
       - "6379:6379"
     command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD}
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping | grep PONG"]
+      test: ["CMD-SHELL", 'redis-cli -a "$${REDIS_PASSWORD}" ping | grep PONG']
       interval: 2s
       timeout: 3s
       retries: 30
