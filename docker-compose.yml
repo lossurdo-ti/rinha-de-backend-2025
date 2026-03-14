@@ -11,7 +11,8 @@ services:
     networks:
       - rinha-de-backend
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
   redis:
     image: redis:7-alpine
@@ -20,6 +21,14 @@ services:
     ports:
       - "6379:6379"
     command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping | grep PONG"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
     networks:
@@ -36,7 +45,8 @@ services:
     networks:
       - rinha-de-backend
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     environment:
       - RI_REDIS_HOST=redis
       - RI_REDIS_PORT=6379
