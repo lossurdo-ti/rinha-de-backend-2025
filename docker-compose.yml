@@ -2,6 +2,7 @@ services:
   app:
     container_name: rinha-de-backend-app
     build: .
+    profiles: ["full-stack"]
     environment:
       - NODE_ENV=production
       - PORT=9999
