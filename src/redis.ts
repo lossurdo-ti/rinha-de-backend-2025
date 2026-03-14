@@ -1,7 +1,9 @@
 import { createClient } from "redis";
+import { config } from "./config";
 
 export const redis: ReturnType<typeof createClient> = createClient({
-  url: process.env.REDIS_URL as string,
+  url: config.REDIS_URL,
+  password: config.REDIS_PASSWORD,
 });
 
 export async function connectRedis() {

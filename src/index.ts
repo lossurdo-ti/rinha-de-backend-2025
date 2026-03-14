@@ -1,8 +1,9 @@
 import Fastify from "fastify";
 import { connectRedis, redis } from "./redis";
+import { config, getLogger } from "./config";
 
 const fastify = Fastify({
-  logger: true,
+  logger: getLogger(config.NODE_ENV),
 });
 
 fastify.route({
@@ -48,7 +49,7 @@ fastify.route({
   try {
     await connectRedis();
     await fastify.listen({
-      port: (process.env.PORT as number | undefined) || 9999,
+      port: config.PORT,
       host: "0.0.0.0",
     });
   } catch (error) {
