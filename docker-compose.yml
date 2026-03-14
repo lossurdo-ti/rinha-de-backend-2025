@@ -1,0 +1,55 @@
+services:
+  app:
+    container_name: rinha-de-backend-app
+    build: .
+    environment:
+      - NODE_ENV=production
+      - PORT=9999
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+    ports:
+      - "9999:9999"
+    networks:
+      - rinha-de-backend
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    container_name: rinha-de-backend-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    networks:
+      - rinha-de-backend
+
+  redisinsight:
+    image: redis/redisinsight
+    container_name: rinha-de-backend-redis-insight
+    restart: unless-stopped
+    ports:
+      - "5540:5540"
+    volumes:
+      - redisinsight_data:/data
+    networks:
+      - rinha-de-backend
+    depends_on:
+      - redis
+    environment:
+      - RI_REDIS_HOST=redis
+      - RI_REDIS_PORT=6379
+      - RI_REDIS_ALIAS=rinha-de-backend
+      - RI_REDIS_USERNAME=default
+      - RI_REDIS_PASSWORD=${REDIS_PASSWORD}
+
+volumes:
+  redis_data:
+  redisinsight_data:
+
+networks:
+  rinha-de-backend:
+    driver: bridge
+  payment-processor:
+    external: true
