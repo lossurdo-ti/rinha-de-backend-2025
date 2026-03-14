@@ -1,15 +1,22 @@
 {
-  "name": "my-backend",
-  "version": "1.0.0",
+  "name": "rinha-de-backend-2025",
+  "version": "0.0.0",
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch --include \"./.env\" --env-file=.env ./src/index.ts",
     "start": "node --env-file=.env dist/index.js",
     "build": "tsc"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "node",
+    "nodejs",
+    "typescript",
+    "javascript",
+    "docker",
+    "redis"
+  ],
+  "author": "thallesgabriel1307@gmail.com",
+  "license": "MIT",
   "description": "",
   "dependencies": {
     "fastify": "^5.7.2",
