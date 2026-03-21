@@ -28,9 +28,40 @@ fastify.route({
       amount: number;
     };
 
-    fastify.log.info({
+    fastify.log.debug(
+      `Payload: ${JSON.stringify(
+        {
+          correlationId,
+          amount,
+        },
+        null,
+        2
+      )}`
+    );
+
+    const requestedAt = new Date().toISOString();
+
+    const accepted = await redis.set(
+      `payment:${correlationId}:accepted`,
+      requestedAt,
+      {
+        NX: true, // Only set the key if it does not already exist
+        EX: 60 * 60, // Expire time in seconds
+      }
+    );
+
+    fastify.log.info(`Redis SET command: ${accepted}`);
+
+    if (!accepted) {
+      return reply.status(202).send();
+    }
+
+    // Insert hash map
+    await redis.hSet(`payment:${correlationId}`, {
       correlationId,
-      amount,
+      amount: amount.toString(),
+      requestedAt,
+      status: "queued",
     });
 
     await redis.lPush(
@@ -38,6 +69,7 @@ fastify.route({
       JSON.stringify({
         correlationId,
         amount,
+        requestedAt,
       })
     );
 

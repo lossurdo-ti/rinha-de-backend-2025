@@ -1,5 +1,4 @@
 import { FastifyLoggerOptions, RawServerBase } from "fastify";
-import { PinoLoggerOptions } from "fastify/types/logger";
 
 type Environment = "dev" | "prd";
 
