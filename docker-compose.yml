@@ -1,7 +1,7 @@
 services:
   app:
     container_name: rinha-de-backend-app
-    build: .
+    build: api/.
     profiles: ["full-stack"]
     environment:
       - NODE_ENV=production
