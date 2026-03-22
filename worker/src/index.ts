@@ -1,91 +1,48 @@
-import Fastify from "fastify";
 import { connectRedis, redis } from "./redis";
-import { config, getLogger } from "./config";
 
-const fastify = Fastify({
-  logger: getLogger(config.NODE_ENV),
-});
+type PaymentJob = {
+  correlationId: string;
+  amount: number;
+  requestedAt: string;
+};
 
-fastify.route({
-  method: "POST",
-  url: "/payments",
-  schema: {
-    body: {
-      type: "object",
-      properties: {
-        correlationId: {
-          type: "string",
-        },
-        amount: {
-          type: "number",
-        },
-      },
-    },
-  },
-  handler: async (request, reply) => {
-    const { correlationId, amount } = request.body as {
-      correlationId: string;
-      amount: number;
-    };
+async function processPayment(job: PaymentJob) {
+  console.log("Processing payment:", job);
 
-    fastify.log.debug(
-      `Payload: ${JSON.stringify(
-        {
-          correlationId,
-          amount,
-        },
-        null,
-        2
-      )}`
-    );
+  await redis.hSet(`payment:${job.correlationId}`, {
+    status: "processed",
+    processor: "unknown",
+    processedAt: new Date().toISOString(),
+  });
+}
 
-    const requestedAt = new Date().toISOString();
+async function workerLoop() {
+  console.log("Worker started and waiting for jobs");
 
-    const accepted = await redis.set(
-      `payment:${correlationId}:accepted`,
-      requestedAt,
-      {
-        NX: true, // Only set the key if it does not already exist
-        EX: 60 * 60, // Expire time in seconds
+  while (true) {
+    try {
+      const result = await redis.brPop("payments_queue", 0);
+
+      if (!result) {
+        continue;
       }
-    );
 
-    fastify.log.info(`Redis SET command: ${accepted}`);
+      const rawJob = result.element;
+      const job = JSON.parse(rawJob) as PaymentJob;
 
-    if (!accepted) {
-      return reply.status(202).send();
+      await processPayment(job);
+    } catch (error) {
+      console.error("Worker loop error", error);
     }
-
-    // Insert hash map
-    await redis.hSet(`payment:${correlationId}`, {
-      correlationId,
-      amount: amount.toString(),
-      requestedAt,
-      status: "queued",
-    });
-
-    await redis.lPush(
-      "payments_queue",
-      JSON.stringify({
-        correlationId,
-        amount,
-        requestedAt,
-      })
-    );
-
-    return reply.status(202).send();
-  },
-});
+  }
+}
 
 (async () => {
   try {
     await connectRedis();
-    await fastify.listen({
-      port: config.PORT,
-      host: "0.0.0.0",
-    });
+    await workerLoop();
   } catch (error) {
-    fastify.log.error(error);
+    console.error("Worker startup error", error);
     process.exit(1);
   }
 })();
