@@ -77,6 +77,51 @@ fastify.route({
   },
 });
 
+fastify.get("/payments-summary", async (request, reply) => {
+  const { from, to } = request.query as {
+    from: string;
+    to: string;
+  };
+
+  const start = new Date(from).getTime();
+  const end = new Date(to).getTime();
+
+  const events = await redis.zRangeByScore(
+    "payments:completed:events",
+    start,
+    end
+  );
+
+  const summary = {
+    totalAmount: 0,
+    totalCounts: 0,
+    processors: {
+      default: {
+        amount: 0,
+        count: 0,
+      },
+      fallback: {
+        amount: 0,
+        count: 0,
+      },
+    },
+  };
+
+  for (const rawEvent of events) {
+    const data = JSON.parse(rawEvent) as {
+      amount: number;
+      processor: "default" | "fallback";
+      correlationId: string;
+    };
+    summary.totalAmount += data.amount;
+    summary.totalCounts += 1;
+    summary.processors[data.processor].count += 1;
+    summary.processors[data.processor].amount += data.amount;
+  }
+
+  return reply.status(200).send(summary);
+});
+
 (async () => {
   try {
     await connectRedis();
