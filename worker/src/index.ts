@@ -46,14 +46,22 @@ async function dispatchPayment(
 }
 
 async function markSuccess(job: PaymentJob, processor: "default" | "fallback") {
-  const processedAt = new Date().toISOString();
+  const processedAt = new Date();
 
   await redis.hSet(`payment:${job.correlationId}`, {
     status: "processed",
     processor,
-    processedAt,
+    processedAt: processedAt.toISOString(),
   });
 
+  await redis.zAdd(`payments:completed:events`, {
+    score: processedAt.getTime(),
+    value: JSON.stringify({
+      amount: job.amount,
+      processor,
+      correlationId: job.correlationId,
+    }),
+  });
   await redis.incr(`summary:${processor}:count`);
   await redis.incrByFloat(`summary:${processor}:amount`, job.amount);
 }
